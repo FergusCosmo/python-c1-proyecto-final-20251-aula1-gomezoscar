@@ -1,146 +1,113 @@
-# Proyecto Final Python C1 — OdontoCare
+# 🦷 OdontoCare — Sistema de Gestión Dental
 
-## Introducción
+Plataforma de microservicios (Flask + SQLAlchemy + JWT + Docker) para administrar usuarios, roles, pacientes, doctores, centros y citas.
 
-El objetivo principal de este proyecto es integrar los distintos contenidos del curso y aplicarlos al desarrollo de una solución backend completa y funcional. Para ello, el estudiante deberá implementar un sistema que combine los siguientes componentes fundamentales:
+## 📚 Resumen rápido
+- Microservicios:
+  - `user_service`: autenticación, usuarios, pacientes, doctores, centros (puerto 8000).
+  - `appointment_service`: gestión de citas y validación contra `user_service` (puerto 8001).
+- Persistencia: SQLite (por defecto) con SQLAlchemy; volúmenes Docker para datos.
+- Seguridad: JWT, validación de roles (admin, medico, secretaria, paciente).
+- Cliente CLI: `carga_inicial.py` para poblar datos vía CSV y crear una cita de demostración.
 
-* **Framework Backend**: Desarrollo de una API REST utilizando Flask, organizada de forma profesional mediante Blueprints para asegurar modularidad y escalabilidad.
-* **Persistencia de Datos**: Uso de una base de datos SQLite, gestionada a través de SQLAlchemy como ORM para modelar entidades, relaciones y operaciones CRUD.
-* **Seguridad**: Implementación de un mecanismo de autenticación basado en tokens, garantizando el acceso seguro a los distintos recursos del sistema.
-* **Cliente Externo**: Creación de un script independiente en Python que consuma los servicios de la API utilizando la biblioteca `requests`, demostrando la correcta interacción entre cliente y servidor.
-* **Arquitectura Distribuida y Comunicación entre Servicios**: Creación de imágenes en Docker.
+## 🏗️ Arquitectura y características
+- REST con Blueprints (`auth_bp`, `admin_bp`, `citas_bp`).
+- Respuestas JSON y códigos HTTP adecuados.
+- Contenerización por servicio y orquestación con `docker-compose.yml`.
+- Red Docker compartida para comunicación entre servicios.
 
-Este objetivo busca consolidar las competencias del nivel C1, permitiendo al estudiante demostrar su capacidad para diseñar, desarrollar e integrar un backend completo con un enfoque profesional.
+## 📂 Estructura del repositorio
+```
+Odontocare/
+├─ appointment_service/   # Servicio de citas (8001)
+├─ user_service/          # Servicio de usuarios/pacientes/doctores/centros (8000)
+├─ csv_templates/         # CSV de ejemplo para carga masiva
+├─ carga_inicial.py       # Cliente CLI para carga y cita de demo
+├─ collection.json        # Colección de pruebas (p.ej. Postman)
+├─ docker-compose.yml
+└─ README.md
+```
 
----
+## 🚀 Puesta en marcha (Docker recomendado)
+1) Ubicarse en el proyecto:
+```bash
+cd /home/ferguscosmo/Documentos/Odontocare
+```
+2) Construir y levantar:
+```bash
+docker-compose up --build -d
+```
+3) Verificar contenedores:
+```bash
+docker ps
+```
+4) Healthchecks:
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8001/health
+```
+5) Detener todo:
+```bash
+docker-compose down
+```
 
-## Escenario del Proyecto
+## 🧑‍💻 Ejecución local (desarrollo)
+Requisitos: Python 3.11+, pip, virtualenv.
 
-Una red de clínicas dentales ha decidido modernizar sus operaciones creando una aplicación a la medida para gestionar las citas de los pacientes y la disponibilidad de los odontólogos. Actualmente, el sistema se maneja de forma manual, lo que provoca errores frecuentes, duplicidad de información y falta de trazabilidad en los procesos administrativos.
+- `user_service`:
+```bash
+cd user_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
+- `appointment_service` (otra terminal):
+```bash
+cd appointment_service
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
 
-Como desarrollador backend asignado al proyecto, tu misión consiste en diseñar y construir una solución integral, robusta y escalable, que permita cubrir todas las necesidades del nuevo sistema de gestión **OdontoCare**. Para ello, se requiere el desarrollo de una API RESTful profesional, siguiendo buenas prácticas de arquitectura de software, seguridad y persistencia de datos.
+## 🌐 API (resumen)
+**Servicio de Usuarios** (`http://localhost:8000`)
+- Auth: `POST /auth/register`, `POST /auth/login` (JWT).
+- Admin (requiere `Authorization: Bearer <token>` y rol `admin`):
+  - Pacientes: `POST /admin/pacientes`, `GET /admin/pacientes`, `GET /admin/pacientes/<id>`
+  - Doctores: `POST /admin/doctores`, `GET /admin/doctores`
+  - Centros: `POST /admin/centros`
 
-El sistema debe permitir la administración eficiente de la información mediante los siguientes módulos esenciales:
+**Servicio de Citas** (`http://localhost:8001`, requiere JWT)
+- `POST /citas` (crea cita; valida paciente/doctor/centro y disponibilidad)
+- `GET /citas` (filtros: `fecha_inicio`, `fecha_fin`, `id_doctor`, `id_centro`, `estado`)
+- `GET /citas/<id>`
+- `PUT /citas/<id>` (cancelar)
 
-* Pacientes
-* Doctores
-* Centros médicos o clínicas
-* Citas médicas
+## 🤖 Carga inicial con CSV
+- CSV de ejemplo: `csv_templates/datos.csv`.
+- Requisitos: servicios arriba y usuario admin existente.
+- Uso:
+```bash
+python carga_inicial.py csv_templates/datos.csv <admin_user> <admin_pass>
+```
+El script autentica, registra pacientes/doctores/centros desde el CSV y crea una cita de demostración.
 
-Toda la información gestionada por la API debe persistir en una base de datos confiable. Además, el acceso a los recursos debe estar controlado mediante un mecanismo de autenticación basado en tokens (JWT o similar), garantizando que solo los usuarios autorizados puedan interactuar con los datos.
+## 🧪 Pruebas rápidas
+- Health: `curl http://localhost:8000/health` y `curl http://localhost:8001/health`.
+- Flujo mínimo (requiere `jq`):
+  1) `POST /auth/register` (crear admin).
+  2) `POST /auth/login` → `TOKEN=$(...)`.
+  3) Crear paciente/doctor/centro en `user_service` con `Authorization: Bearer $TOKEN`.
+  4) Crear cita en `appointment_service` con el mismo token.
 
-El formato de comunicación de todos los servicios será exclusivamente **JSON**, por lo que cada endpoint debe responder consistentemente en este formato, tanto en operaciones exitosas como en el manejo de errores.
+## 🛠️ Solución de problemas breve
+- Puertos 8000/8001 ocupados: liberar (`lsof -i :8000`, `lsof -i :8001`) y reconstruir (`docker-compose up --build -d`).
+- Conexión entre servicios: revisar red y logs (`docker logs <container>`), asegurar ambos contenedores arriba.
+- Token inválido: reautenticar y enviar header `Authorization: Bearer <token>`.
+- BD no inicializa: `docker-compose down -v` y volver a levantar.
 
-El estudiante deberá definir y organizar adecuadamente la estructura del proyecto. Adicionalmente, deberá incluir un archivo `requirements.txt` para cada proyecto, en el cual se especifiquen todas las librerías y dependencias necesarias, incorporando aquellas que considere pertinentes para el correcto desarrollo de la actividad.
-
----
-
-## Objetivos Principales del Sistema
-
-* Diseñar una API RESTful organizada, modular y mantenible.
-* Implementar operaciones CRUD para pacientes, doctores, centros y citas.
-* Garantizar la persistencia de la información en una base de datos (SQL o NoSQL).
-* Incorporar un sistema de autenticación segura por tokens.
-* Asegurar que todas las respuestas se entreguen en formato JSON.
-* Aplicar buenas prácticas como validación de datos, manejo de excepciones, paginación y documentación básica del API.
-* Implementar una arquitectura distribuida basada en contenedores Docker.
-
----
-
-## Arquitectura de la Solución
-
-Para garantizar un desarrollo ordenado, escalable y alineado con buenas prácticas de ingeniería de software, la API debe implementarse utilizando una arquitectura modular basada en **Blueprints de Flask**. Esto permitirá separar la lógica del sistema por dominios funcionales, facilitando su mantenimiento, comprensión y reutilización.
-
-La solución no debe concentrar todo el código en un solo archivo. En su lugar, se exige una estructura organizada que distribuya la lógica en módulos claros y coherentes. La API deberá estructurarse, como mínimo, con los siguientes componentes:
-
----
-
-### auth_bp — Autenticación y Gestión de Usuarios
-
-Encargado de todas las operaciones relacionadas con el acceso seguro al sistema. Debe incluir:
-
-* Registro de usuarios autorizados.
-* Inicio de sesión mediante validación de credenciales.
-* Generación y validación de tokens de autenticación (JWT).
-* Manejo de errores de acceso.
-
-Este módulo garantiza que todas las acciones dentro del sistema sean realizadas solo por usuarios autenticados.
-
----
-
-### admin_bp — Administración y Gestión de Centros, Pacientes y Doctores
-
-Módulo orientado a tareas administrativas, encargado de configurar los elementos base del sistema. Debe incluir:
-
-* Creación de entidades principales: centros médicos, pacientes y doctores.
-* Carga de datos, tanto masiva como individual, utilizando archivos en formato JSON cuando sea requerido.
-* Opciones de consulta para todos los tipos de registros, permitiendo:
-
-  * Búsqueda individual por ID.
-  * Visualización opcional de una lista completa de registros.
-
-Este módulo está diseñado para usuarios con roles administrativos o de gestión.
-
----
-
-### citas_bp — Gestión Operativa de Citas
-
-Responsable del núcleo funcional de **OdontoCare**: la planificación, administración y control de citas médicas. Debe incluir:
-
-* Creación, actualización, consulta y eliminación de citas.
-* Validación de disponibilidad de doctores y centros.
-* Reglas operativas para evitar conflictos en la agenda.
-* Respuestas en formato JSON con mensajes claros y estructurados.
-
-Este módulo será el más utilizado durante la operación diaria d
-
-**Nota**: El resto de la actividad se encuentra descrito en el enunciado del ejercicio. El estudiante debe leer detenidamente cada uno de los puntos de la actividad para desarrollar correctamente el ejercicio. 
-
----
-
-## Requisitos de Entrega y Demostración
-
-La entrega final del proyecto no solo incluye el código fuente, sino también la demostración práctica y la evidencia del correcto funcionamiento del sistema basado en microservicios.
-
----
-
-### Código Funcional (Fork en Git)
-
-El requisito fundamental es la entrega del código fuente completo y funcional.
-
-* **Plataforma**: El código debe estar alojado en un repositorio Git.
-* **Contenido**: El repositorio debe incluir todos los componentes del sistema **OdontoCare**, siguiendo la arquitectura distribuida definida, con servicios independientes para **Usuarios/Administración** y **Citas**.
-* El estudiante debe desarrollar y presentar un conjunto de scripts que demuestren de forma práctica el funcionamiento de los servicios y su correcta interacción.
-
----
-
-### Pruebas de Integración (Opcional)
-
-De forma opcional, se pueden incluir o desarrollar pruebas de integración que validen la comunicación entre los distintos servicios y el acceso externo a los endpoints expuestos.
-
-Las pruebas de integración podrán incluir cualquiera de los siguientes métodos:
-
-* Scripts que realicen llamadas directas a los endpoints del servicio (utilizando librerías HTTP o comandos como `curl`).
-* Implementación de pruebas unitarias utilizando **unittest** o el módulo **flask.testing**.
-
----
-
-### Documentación de Pruebas de Endpoints
-
-Se deberá entregar documentación o scripts que incluyan, de forma clara y ordenada, la siguiente información para cada prueba de endpoint realizada:
-
-* **Endpoint utilizado**: Ruta completa del servicio REST.
-* **Archivo de entrada**: Cuerpo de la solicitud enviado, obligatoriamente en formato **JSON**.
-
----
-
-### Video Explicativo
-
-Se requiere una demostración visual, clara y concisa del aplicativo desarrollado.
-
-**Requisitos del video:**
-
-* **Duración máxima**: 5 minutos.
-* **Contenido**: Debe evidenciar claramente el funcionamiento completo del aplicativo, incluyendo la interacción entre los microservicios.
-* **Funcionamiento**: Mostrar el flujo de trabajo del sistema, desde la inicialización de los servicios hasta la creación de una cita médica, destacando la comunicación RESTful entre los módulos.
-
+## 📞 Recursos
+- [Flask](https://flask.palletsprojects.com/)
+- [Flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/)
+- [Docker](https://docs.docker.com/)
+- [JWT.io](https://jwt.io/)

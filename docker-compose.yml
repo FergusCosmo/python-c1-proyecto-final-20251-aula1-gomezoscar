@@ -1,0 +1,46 @@
+name: odontocare
+
+services:
+  user_service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    container_name: odontocare_user_service
+    ports:
+      - "8000:8000"
+    networks:
+      - odontocare_net
+    volumes:
+      - user_service_logs:/app/logs
+      - user_service_data:/app/data
+
+  appointment_service:
+    build:
+      context: ./appointment_service
+      dockerfile: Dockerfile
+    container_name: odontocare_appointment_service
+    ports:
+      - "8001:8001"
+    depends_on:
+      - user_service
+    networks:
+      - odontocare_net
+    environment:
+      - USER_SERVICE_URL=http://user_service:8000
+    volumes:
+      - appointment_service_logs:/app/logs
+      - appointment_service_data:/app/data
+
+networks:
+  odontocare_net:
+    driver: bridge
+
+volumes:
+  user_service_logs:
+    driver: local
+  user_service_data:
+    driver: local
+  appointment_service_logs:
+    driver: local
+  appointment_service_data:
+    driver: local

@@ -1,0 +1,5 @@
+username,password,rol
+"admin","admin123","admin"
+"medico1","medico123","medico"
+"secretaria1","secretaria123","secretaria"
+"paciente1","paciente123","paciente"

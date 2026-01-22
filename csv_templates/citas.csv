@@ -1,0 +1,6 @@
+fecha,motivo,id_paciente,id_doctor,id_centro
+2026-01-20T10:00:00,Consulta de rutina,1,1,1
+2026-01-21T11:30:00,Limpieza dental,2,1,1
+2026-01-22T09:00:00,Ortodoncia - control,1,2,2
+2026-01-23T16:15:00,Endodoncia - evaluación,3,3,1
+2026-01-24T08:45:00,Cirugía oral - consulta,4,4,3
